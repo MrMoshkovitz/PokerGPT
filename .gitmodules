@@ -1,3 +1,6 @@
 [submodule "ml-fastvlm"]
 	path = ml-fastvlm
 	url = https://github.com/MrMoshkovitz/ml-fastvlm.git
+[submodule "GPA"]
+	path = GPA
+	url = https://github.com/Guard8-ai/GroundedProgressiveArchitecture.git
