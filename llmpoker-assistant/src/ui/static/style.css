@@ -1,0 +1,310 @@
+/* LLMPoker Assistant - Dashboard Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+    line-height: 1.6;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header */
+header {
+    background-color: #2a2a2a;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid #00ff88;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    color: #00ff88;
+    font-size: 1.8rem;
+}
+
+#status {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.status-connected {
+    color: #00ff88;
+}
+
+.status-disconnected {
+    color: #ff4444;
+}
+
+/* Main Content */
+main {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+section {
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+section h2 {
+    color: #00ff88;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    border-bottom: 1px solid #444;
+    padding-bottom: 0.5rem;
+}
+
+/* Game State Panel */
+#game-state {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.state-row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.state-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+}
+
+.state-item.full-width {
+    width: 100%;
+}
+
+.state-item label {
+    color: #888;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+}
+
+.state-item span {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.cards {
+    font-family: monospace;
+    font-size: 1.3rem !important;
+    color: #00ff88;
+}
+
+/* Progress bars */
+progress {
+    width: 100%;
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+progress::-webkit-progress-bar {
+    background-color: #444;
+    border-radius: 10px;
+}
+
+progress::-webkit-progress-value {
+    background-color: #00ff88;
+    border-radius: 10px;
+}
+
+progress.high-conf::-webkit-progress-value {
+    background-color: #00ff88;
+}
+
+progress.med-conf::-webkit-progress-value {
+    background-color: #ffaa00;
+}
+
+progress.low-conf::-webkit-progress-value {
+    background-color: #ff4444;
+}
+
+/* Recommendation Panel */
+#action-container {
+    margin-bottom: 1.5rem;
+}
+
+#action {
+    font-size: 2.5rem;
+    font-weight: bold;
+    padding: 1.5rem;
+    text-align: center;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.action-waiting {
+    background-color: #333;
+    color: #888;
+}
+
+.action-high-conf {
+    background-color: #005533;
+    color: #00ff88;
+}
+
+.action-med-conf {
+    background-color: #554400;
+    color: #ffaa00;
+}
+
+.action-low-conf {
+    background-color: #552222;
+    color: #ff8888;
+}
+
+#confidence-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+#confidence-container progress {
+    flex: 1;
+}
+
+#confidence-text {
+    min-width: 100px;
+    text-align: right;
+}
+
+/* Reasoning */
+details {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #333;
+    border-radius: 6px;
+}
+
+summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #00ff88;
+    user-select: none;
+}
+
+summary:hover {
+    color: #00ffaa;
+}
+
+details[open] summary {
+    margin-bottom: 1rem;
+}
+
+#reasoning-text {
+    line-height: 1.8;
+    color: #ddd;
+}
+
+/* Alternatives */
+#alternatives {
+    margin-top: 1rem;
+}
+
+#alternatives h3 {
+    font-size: 1rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+}
+
+.alternative {
+    background-color: #333;
+    padding: 0.5rem 1rem;
+    margin: 0.5rem 0;
+    border-radius: 4px;
+    border-left: 3px solid #00ff88;
+}
+
+/* System Messages */
+.alert {
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    border-left: 4px solid;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.alert-info {
+    background-color: #1a3a5a;
+    border-color: #4488ff;
+    color: #aaccff;
+}
+
+.alert-warning {
+    background-color: #5a4a1a;
+    border-color: #ffaa00;
+    color: #ffdd88;
+}
+
+.alert-error {
+    background-color: #5a1a1a;
+    border-color: #ff4444;
+    color: #ffaaaa;
+}
+
+/* Footer */
+footer {
+    background-color: #2a2a2a;
+    padding: 1rem 2rem;
+    border-top: 1px solid #444;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    main {
+        padding: 1rem;
+    }
+
+    .state-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    #action {
+        font-size: 2rem;
+    }
+}

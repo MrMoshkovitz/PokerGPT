@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLMPoker Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header>
+            <h1>⚡ LLMPoker Assistant</h1>
+            <div id="status">
+                <span id="connection-status" class="status-disconnected">● Disconnected</span>
+                <span id="session-info"></span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Game State Panel -->
+            <section id="game-state-panel">
+                <h2>Game State</h2>
+                <div id="game-state">
+                    <div class="state-row">
+                        <div class="state-item">
+                            <label>Your Hand:</label>
+                            <span id="hole-cards" class="cards">--</span>
+                        </div>
+                        <div class="state-item">
+                            <label>Board:</label>
+                            <span id="board" class="cards">--</span>
+                        </div>
+                    </div>
+                    <div class="state-row">
+                        <div class="state-item">
+                            <label>Pot:</label>
+                            <span id="pot">$--</span>
+                        </div>
+                        <div class="state-item">
+                            <label>Stack:</label>
+                            <span id="stack">$--</span>
+                        </div>
+                        <div class="state-item">
+                            <label>Position:</label>
+                            <span id="position">--</span>
+                        </div>
+                    </div>
+                    <div class="state-row">
+                        <div class="state-item full-width">
+                            <label>Vision Confidence:</label>
+                            <progress id="vision-confidence" max="100" value="0"></progress>
+                            <span id="vision-confidence-text">--</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recommendation Panel -->
+            <section id="recommendation-panel">
+                <h2>Recommendation</h2>
+                <div id="recommendation">
+                    <div id="action-container">
+                        <div id="action" class="action-waiting">Waiting for action...</div>
+                        <div id="confidence-container">
+                            <progress id="confidence" max="100" value="0"></progress>
+                            <span id="confidence-text">--</span>
+                        </div>
+                    </div>
+
+                    <details id="reasoning-details">
+                        <summary>Reasoning</summary>
+                        <p id="reasoning-text">No reasoning available yet.</p>
+                    </details>
+
+                    <div id="alternatives"></div>
+                </div>
+            </section>
+
+            <!-- System Messages -->
+            <section id="messages-panel">
+                <div id="messages"></div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <span id="provider-info">LLM Provider: --</span>
+            <span id="latency-info">Latency: --</span>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
