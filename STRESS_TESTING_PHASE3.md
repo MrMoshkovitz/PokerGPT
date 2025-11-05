@@ -200,14 +200,44 @@
 
 ---
 
-## Next Steps (Phase 4: Philosophical Grounding)
+## User Responses to Stress Testing (Phase 3 → 4 Transition)
 
-Based on these concerns, we need to establish:
-1. **Core values**: What trade-offs are acceptable?
-2. **Decision principles**: How to handle conflicts?
-3. **Boundaries**: What's in/out of scope?
-4. **Philosophy**: What is this tool's purpose?
+### Decisions Made:
+
+1. **Card Misrecognition**: Be agnostic to poker client, do best with FastVLM as-is
+2. **Dynamic UI Changes**: Address as noise, ignore if not game-related content
+3. **Multi-Table**: OUT OF SCOPE
+4. **Performance/API**: **CRITICAL CORRECTION - Using Claude Code CLI (`claude -p ...`), NOT Claude API**
+5. **GTO Data Quality**: OUT OF SCOPE
+6. **Contextual Mismatches**: OUT OF SCOPE
+7. **Action Timing**: Do as fast and efficient as possible
+8. **API Reliability**: Fallback to OpenAI API or Gemini CLI
+9. **Context Hallucination**: Use ultrathink mode, ensure reasoning is smarter and thinking harder
+10. **Prompt Engineering**: Focus on REGULAR GAMES (cash), same prompt with game history context
+11. **Trust & Verification**: Recommendations MUST be optimal - "losses → blame the tool" is correct and intentional
+12. **Learning Interference**: OUT OF SCOPE
+13. **Legal/Ethical**: OUT OF SCOPE
+14. **Cross-Platform**: Start with Mac, rest is technical debt
+15. **Model Updates**: Technical debt
+16. **Debugging**: Add logging ALL OVER the app
+17. **Player Profiling**: IMPLEMENT PERSISTENCY
+18. **Hand History Integration**: (No response - future consideration)
+19. **Multi-Variant**: OUT OF SCOPE (Texas Hold'em only)
+
+### Architectural Implications:
+
+**🔥 CRITICAL CHANGE**: Local LLM Execution via CLI
+- Claude Code CLI (`claude -p "prompt"`)
+- OpenAI API fallback
+- Gemini CLI fallback
+- Extended reasoning mode (ultrathink)
+- **No API latency concerns** - local execution!
+
+**Focus**: Cash Games (8-handed Texas Hold'em)
+**Platform**: Mac-first (Windows/Linux = technical debt)
+**Logging**: Comprehensive across entire pipeline
+**Persistence**: Player profiling database
 
 ---
 
-**Status**: Phase 3 Complete - Ready for Philosophical Grounding
+**Status**: Phase 3 Complete with User Decisions - Moving to Phase 4 (Philosophical Grounding)
