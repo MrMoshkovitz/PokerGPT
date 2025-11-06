@@ -8,7 +8,7 @@ Includes live preview and verification before closing.
 import tkinter as tk
 from tkinter import messagebox
 import yaml
-from PIL import ImageGrab, ImageTk
+from PIL import Image, ImageGrab, ImageTk
 import threading
 import time
 import sys
@@ -24,6 +24,12 @@ print("Creating visual indicator window...")
 print("This red box shows where the app is watching.")
 print("Position your poker window inside this box!")
 print("\nClick 'Capture & Verify Region' to see what's being captured.")
+
+# Multi-monitor check
+if region['left'] > 1728 or region['top'] > 1117:
+    print("\n⚠️  Note: Coordinates suggest secondary monitor")
+    print("   Overlay window may not appear correctly on secondary displays")
+    print("   Main capture (main.py) will work fine on any monitor")
 
 # Check screen recording permissions on macOS
 if sys.platform == 'darwin':
@@ -65,7 +71,6 @@ def capture_screenshot_once():
     """Capture a single screenshot of the monitored region."""
     import tempfile
     import os
-    from PIL import Image
 
     # Hide overlay window
     overlay.withdraw()
