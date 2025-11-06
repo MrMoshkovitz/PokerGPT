@@ -5,7 +5,7 @@ Pydantic models for type-safe game state and recommendations.
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Literal
+from typing import List, Optional, Dict, Literal, Any
 from enum import Enum
 
 
@@ -67,7 +67,7 @@ class Recommendation(BaseModel):
     amount: Optional[float] = Field(default=None, description="Exact amount if applicable")
     confidence: float = Field(ge=0.0, le=1.0, description="Recommendation confidence")
     reasoning: str = Field(description="Detailed reasoning for the action")
-    alternatives: List[Dict[str, any]] = Field(
+    alternatives: List[Dict[str, Any]] = Field(
         default_factory=list, description="Alternative actions with confidence"
     )
     gto_baseline: Optional[GTOAction] = Field(
