@@ -4,6 +4,12 @@ LLMPoker Assistant - Main Application
 Entry point for the poker decision co-pilot application.
 """
 
+import os
+import sys
+
+# Add the project root to the sys.path to resolve module import issues
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import asyncio
 import logging
 import signal
