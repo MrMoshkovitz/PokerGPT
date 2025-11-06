@@ -62,12 +62,19 @@ def update_preview():
 
     while preview_active:
         try:
+            # Temporarily hide overlay to capture what's underneath
+            overlay.withdraw()  # Hide the overlay window
+            time.sleep(0.05)  # Brief delay to let window hide
+
             # Capture screenshot
             screenshot = ImageGrab.grab(
                 bbox=(region['left'], region['top'],
                       region['left'] + region['width'],
                       region['top'] + region['height'])
             )
+
+            # Show overlay again
+            overlay.deiconify()  # Show the overlay window
 
             # Resize for preview (fit to 800x600 max)
             preview_size = (800, 600)
@@ -83,6 +90,7 @@ def update_preview():
 
         except Exception as e:
             print(f"Preview update error: {e}")
+            overlay.deiconify()  # Make sure overlay is visible even on error
             break
 
 def show_preview():
