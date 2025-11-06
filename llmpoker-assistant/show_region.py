@@ -72,9 +72,12 @@ def capture_screenshot_macos():
     import os
     from PIL import Image
 
-    # Temporarily hide overlay
+    # Temporarily hide BOTH overlay AND preview window
     overlay.withdraw()
-    time.sleep(0.1)
+    if preview_window and preview_window.winfo_exists():
+        preview_window.withdraw()
+
+    time.sleep(0.15)  # Longer delay to ensure windows are hidden
 
     try:
         # Create temp file
@@ -101,7 +104,10 @@ def capture_screenshot_macos():
         return screenshot
 
     finally:
+        # Show windows again
         overlay.deiconify()
+        if preview_window and preview_window.winfo_exists():
+            preview_window.deiconify()
 
 def update_preview():
     """Update preview with current screenshot."""
@@ -162,10 +168,22 @@ def show_preview():
     preview_window.title("Region Preview - What LLMPoker Sees")
     preview_window.configure(bg='black')
 
-    # Position to the right of the monitored region
+    # Position OUTSIDE the monitored region
+    # Try to position to the right, but if not enough space, position to the left
+    screen_width = overlay.winfo_screenwidth()
+    preview_width = 820
+    preview_height = 700
+
     preview_x = region['left'] + region['width'] + 20
-    preview_y = region['top']
-    preview_window.geometry(f"820x700+{preview_x}+{preview_y}")
+    if preview_x + preview_width > screen_width:
+        # Not enough space on right, try left
+        preview_x = max(0, region['left'] - preview_width - 20)
+
+    preview_y = max(0, region['top'])
+    preview_window.geometry(f"{preview_width}x{preview_height}+{preview_x}+{preview_y}")
+
+    # Make sure preview doesn't overlap monitored region
+    preview_window.attributes("-topmost", False)  # Don't stay on top
 
     # Info label
     info = tk.Label(
