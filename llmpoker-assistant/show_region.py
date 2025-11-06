@@ -23,7 +23,7 @@ print(f"Monitoring region: {region}")
 print("Creating visual indicator window...")
 print("This red box shows where the app is watching.")
 print("Position your poker window inside this box!")
-print("\nClick 'Verify & Preview' to see what's being captured.")
+print("\nClick 'Capture & Verify Region' to see what's being captured.")
 
 # Check screen recording permissions on macOS
 if sys.platform == 'darwin':
@@ -61,23 +61,15 @@ preview_window = None
 preview_active = False
 preview_label = None
 
-def stop_preview():
-    """Stop the preview update loop."""
-    global preview_active
-    preview_active = False
-
-def capture_screenshot_macos():
-    """Capture screenshot using macOS screencapture command (triggers permission dialog)."""
+def capture_screenshot_once():
+    """Capture a single screenshot of the monitored region."""
     import tempfile
     import os
     from PIL import Image
 
-    # Temporarily hide BOTH overlay AND preview window
+    # Hide overlay window
     overlay.withdraw()
-    if preview_window and preview_window.winfo_exists():
-        preview_window.withdraw()
-
-    time.sleep(0.15)  # Longer delay to ensure windows are hidden
+    time.sleep(0.2)  # Wait for window to hide
 
     try:
         # Create temp file
@@ -85,7 +77,6 @@ def capture_screenshot_macos():
             tmp_path = tmp.name
 
         # Use screencapture with specific region
-        # Format: screencapture -R x,y,w,h output.png
         cmd = [
             'screencapture',
             '-x',  # No sound
@@ -93,7 +84,10 @@ def capture_screenshot_macos():
             tmp_path
         ]
 
-        subprocess.run(cmd, check=True, capture_output=True)
+        result = subprocess.run(cmd, capture_output=True)
+
+        if result.returncode != 0:
+            raise Exception(f"screencapture failed: {result.stderr.decode() if result.stderr else 'Unknown error'}")
 
         # Load image
         screenshot = Image.open(tmp_path)
@@ -103,116 +97,90 @@ def capture_screenshot_macos():
 
         return screenshot
 
+    except Exception as e:
+        print(f"⚠️  Screenshot capture failed: {e}")
+        print("\nPlease enable Screen Recording permission:")
+        print("System Settings > Privacy & Security > Screen Recording")
+        print("Enable permission for 'Terminal' or 'Python'\n")
+        raise
     finally:
-        # Show windows again
+        # Show overlay again
         overlay.deiconify()
-        if preview_window and preview_window.winfo_exists():
-            preview_window.deiconify()
-
-def update_preview():
-    """Update preview with current screenshot."""
-    global preview_active, preview_label, preview_window
-
-    while preview_active:
-        try:
-            # Use macOS native screencapture on macOS, PIL on other platforms
-            if sys.platform == 'darwin':
-                screenshot = capture_screenshot_macos()
-            else:
-                # Temporarily hide overlay to capture what's underneath
-                overlay.withdraw()
-                time.sleep(0.05)
-
-                screenshot = ImageGrab.grab(
-                    bbox=(region['left'], region['top'],
-                          region['left'] + region['width'],
-                          region['top'] + region['height'])
-                )
-
-                overlay.deiconify()
-
-            # Resize for preview (fit to 800x600 max)
-            preview_size = (800, 600)
-            screenshot.thumbnail(preview_size, ImageTk.Image.LANCZOS)
-
-            # Update preview label
-            photo = ImageTk.PhotoImage(screenshot)
-            if preview_label and preview_window.winfo_exists():
-                preview_label.configure(image=photo)
-                preview_label.image = photo  # Keep reference
-
-            time.sleep(0.5)  # Update every 500ms
-
-        except subprocess.CalledProcessError as e:
-            print(f"⚠️  Screen recording permission denied!")
-            print(f"Error: {e.stderr.decode() if e.stderr else 'Unknown'}")
-            print("\nPlease enable Screen Recording permission:")
-            print("System Settings > Privacy & Security > Screen Recording")
-            overlay.deiconify()
-            break
-        except Exception as e:
-            print(f"Preview update error: {e}")
-            overlay.deiconify()
-            break
 
 def show_preview():
-    """Show live preview of captured region."""
-    global preview_window, preview_active, preview_label
+    """Show single screenshot preview of captured region."""
+    global preview_window, preview_label
 
     if preview_window and preview_window.winfo_exists():
         preview_window.lift()
         return
+
+    # Capture screenshot ONCE
+    print("📸 Capturing screenshot...")
+    try:
+        screenshot = capture_screenshot_once()
+    except Exception as e:
+        messagebox.showerror(
+            "Screenshot Failed",
+            f"Could not capture screenshot.\n\n"
+            f"Error: {e}\n\n"
+            f"Please check Screen Recording permissions in System Settings."
+        )
+        return
+
+    print("✓ Screenshot captured successfully")
 
     # Create preview window
     preview_window = tk.Toplevel(overlay)
     preview_window.title("Region Preview - What LLMPoker Sees")
     preview_window.configure(bg='black')
 
-    # Position OUTSIDE the monitored region
-    # Try to position to the right, but if not enough space, position to the left
+    # Position next to monitored region
     screen_width = overlay.winfo_screenwidth()
     preview_width = 820
-    preview_height = 700
+    preview_height = 750
 
     preview_x = region['left'] + region['width'] + 20
     if preview_x + preview_width > screen_width:
-        # Not enough space on right, try left
         preview_x = max(0, region['left'] - preview_width - 20)
 
     preview_y = max(0, region['top'])
     preview_window.geometry(f"{preview_width}x{preview_height}+{preview_x}+{preview_y}")
 
-    # Make sure preview doesn't overlap monitored region
-    preview_window.attributes("-topmost", False)  # Don't stay on top
-
     # Info label
     info = tk.Label(
         preview_window,
-        text=f"Live preview updating every 500ms\nRegion: {region['width']}x{region['height']} at ({region['left']}, {region['top']})",
+        text=f"Preview of monitored region\nRegion: {region['width']}x{region['height']} at ({region['left']}, {region['top']})",
         bg='black',
         fg='white',
-        font=('Arial', 10),
-        pady=10
+        font=('Arial', 12, 'bold'),
+        pady=15
     )
     info.pack()
 
-    # Preview label
+    # Preview label with screenshot
     preview_label = tk.Label(preview_window, bg='black')
     preview_label.pack(padx=10, pady=10)
 
+    # Resize for display
+    preview_size = (800, 600)
+    screenshot.thumbnail(preview_size, Image.LANCZOS)
+    photo = ImageTk.PhotoImage(screenshot)
+    preview_label.configure(image=photo)
+    preview_label.image = photo  # Keep reference
+
     # Verification buttons
     verify_frame = tk.Frame(preview_window, bg='black')
-    verify_frame.pack(pady=10)
+    verify_frame.pack(pady=15)
 
     def verify_and_close():
         """User confirms region is correct."""
-        stop_preview()
         if messagebox.askyesno(
             "Verify Region",
             f"Confirm this is the correct area to monitor?\n\n"
             f"Region: {region['width']}x{region['height']}\n"
             f"Position: ({region['left']}, {region['top']})\n\n"
-            f"Your poker window should be positioned inside the red box."
+            f"The screenshot shows what LLMPoker will analyze."
         ):
             print("\n✅ Region verified successfully!")
             print(f"   Monitoring: {region['width']}x{region['height']} at ({region['left']}, {region['top']})")
@@ -220,9 +188,11 @@ def show_preview():
             print("   python src/main.py\n")
             preview_window.destroy()
             overlay.destroy()
-        else:
-            # Keep showing preview
-            pass
+
+    def retake_screenshot():
+        """Retake the screenshot."""
+        preview_window.destroy()
+        show_preview()
 
     tk.Button(
         verify_frame,
@@ -237,8 +207,19 @@ def show_preview():
 
     tk.Button(
         verify_frame,
+        text="🔄 Retake Screenshot",
+        command=retake_screenshot,
+        bg='blue',
+        fg='white',
+        font=('Arial', 12, 'bold'),
+        padx=20,
+        pady=10
+    ).pack(side=tk.LEFT, padx=10)
+
+    tk.Button(
+        verify_frame,
         text="❌ Close Preview",
-        command=lambda: (stop_preview(), preview_window.destroy()),
+        command=preview_window.destroy,
         bg='gray',
         fg='white',
         font=('Arial', 12, 'bold'),
@@ -246,22 +227,10 @@ def show_preview():
         pady=10
     ).pack(side=tk.LEFT, padx=10)
 
-    # Start preview updates
-    preview_active = True
-    preview_thread = threading.Thread(target=update_preview, daemon=True)
-    preview_thread.start()
-
-    # Handle window close
-    def on_close():
-        stop_preview()
-        preview_window.destroy()
-
-    preview_window.protocol("WM_DELETE_WINDOW", on_close)
-
 # Verify button
 verify_btn = tk.Button(
     btn_frame,
-    text="🔍 Verify & Preview",
+    text="📸 Capture & Verify Region",
     command=show_preview,
     bg='white',
     fg='blue',
