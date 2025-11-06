@@ -11,6 +11,8 @@ import yaml
 from PIL import ImageGrab, ImageTk
 import threading
 import time
+import sys
+import subprocess
 
 # Load region from config
 with open('config/region.yaml', 'r') as f:
@@ -21,7 +23,15 @@ print(f"Monitoring region: {region}")
 print("Creating visual indicator window...")
 print("This red box shows where the app is watching.")
 print("Position your poker window inside this box!")
-print("\nClick 'Verify & Preview' to see what's being captured.\n")
+print("\nClick 'Verify & Preview' to see what's being captured.")
+
+# Check screen recording permissions on macOS
+if sys.platform == 'darwin':
+    print("\n⚠️  IMPORTANT: macOS Screen Recording Permission Required")
+    print("If preview shows blank/wallpaper instead of poker game:")
+    print("1. Open System Settings > Privacy & Security > Screen Recording")
+    print("2. Enable permission for 'Terminal' or 'Python'")
+    print("3. Restart this script\n")
 
 # Create transparent overlay window
 overlay = tk.Tk()
@@ -56,25 +66,64 @@ def stop_preview():
     global preview_active
     preview_active = False
 
+def capture_screenshot_macos():
+    """Capture screenshot using macOS screencapture command (triggers permission dialog)."""
+    import tempfile
+    import os
+    from PIL import Image
+
+    # Temporarily hide overlay
+    overlay.withdraw()
+    time.sleep(0.1)
+
+    try:
+        # Create temp file
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+            tmp_path = tmp.name
+
+        # Use screencapture with specific region
+        # Format: screencapture -R x,y,w,h output.png
+        cmd = [
+            'screencapture',
+            '-x',  # No sound
+            '-R', f"{region['left']},{region['top']},{region['width']},{region['height']}",
+            tmp_path
+        ]
+
+        subprocess.run(cmd, check=True, capture_output=True)
+
+        # Load image
+        screenshot = Image.open(tmp_path)
+
+        # Cleanup
+        os.unlink(tmp_path)
+
+        return screenshot
+
+    finally:
+        overlay.deiconify()
+
 def update_preview():
     """Update preview with current screenshot."""
     global preview_active, preview_label, preview_window
 
     while preview_active:
         try:
-            # Temporarily hide overlay to capture what's underneath
-            overlay.withdraw()  # Hide the overlay window
-            time.sleep(0.05)  # Brief delay to let window hide
+            # Use macOS native screencapture on macOS, PIL on other platforms
+            if sys.platform == 'darwin':
+                screenshot = capture_screenshot_macos()
+            else:
+                # Temporarily hide overlay to capture what's underneath
+                overlay.withdraw()
+                time.sleep(0.05)
 
-            # Capture screenshot
-            screenshot = ImageGrab.grab(
-                bbox=(region['left'], region['top'],
-                      region['left'] + region['width'],
-                      region['top'] + region['height'])
-            )
+                screenshot = ImageGrab.grab(
+                    bbox=(region['left'], region['top'],
+                          region['left'] + region['width'],
+                          region['top'] + region['height'])
+                )
 
-            # Show overlay again
-            overlay.deiconify()  # Show the overlay window
+                overlay.deiconify()
 
             # Resize for preview (fit to 800x600 max)
             preview_size = (800, 600)
@@ -88,9 +137,16 @@ def update_preview():
 
             time.sleep(0.5)  # Update every 500ms
 
+        except subprocess.CalledProcessError as e:
+            print(f"⚠️  Screen recording permission denied!")
+            print(f"Error: {e.stderr.decode() if e.stderr else 'Unknown'}")
+            print("\nPlease enable Screen Recording permission:")
+            print("System Settings > Privacy & Security > Screen Recording")
+            overlay.deiconify()
+            break
         except Exception as e:
             print(f"Preview update error: {e}")
-            overlay.deiconify()  # Make sure overlay is visible even on error
+            overlay.deiconify()
             break
 
 def show_preview():
