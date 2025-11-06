@@ -1,7 +1,6 @@
 # LLMPoker Assistant - Python Dependencies
 
-# Core
-python>=3.10
+# Core (Python 3.10+ required - see README.md)
 
 # Vision & ML
 torch>=2.0.0
@@ -10,8 +9,8 @@ transformers>=4.30.0
 pillow>=9.5.0
 accelerate>=0.20.0
 
-# FastVLM (from GitHub fork)
-git+https://github.com/MrMoshkovitz/ml-fastvlm.git
+# FastVLM (from local submodule with fixed dependencies)
+../ml-fastvlm
 
 # Screen capture
 mss>=9.0.0
