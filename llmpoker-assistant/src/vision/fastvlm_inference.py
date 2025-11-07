@@ -160,8 +160,13 @@ Output ONLY valid JSON, no text before or after:
         Parse FastVLM JSON response.
 
         Handles cases where LLM wraps JSON in markdown code blocks or generates multiple JSONs.
+        Note: Prompt ends with '{' to prime JSON, but model may not include it in output.
         """
         try:
+            # If response doesn't start with '{', prepend it (prompt priming artifact)
+            if not response.strip().startswith('{'):
+                response = '{' + response
+
             # Try to extract JSON from markdown code blocks first
             json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response, re.DOTALL)
             if json_match:
