@@ -139,47 +139,58 @@ class FastVLMInference:
 
     def _build_extraction_prompt(self) -> str:
         """Build vision prompt for game state extraction."""
-        return """You are analyzing a poker game screenshot. Extract game information and respond with ONLY valid JSON.
+        return """Extract poker game information from this screenshot.
 
-Extract:
-- hole_cards: Your 2 cards (e.g. ["Ah", "Kd"])
-- board: Community cards 0-5 (e.g. ["Qh", "Js", "10c"])
-- pot: Pot amount as number (e.g. 450)
-- your_stack: Your chips as number (e.g. 2500)
-- position: Your seat (BTN, CO, MP, UTG, SB, BB, or UNKNOWN)
-- action_on_you: true if it's your turn, false otherwise
-- confidence: Scores 0.0-1.0 for each element
+Required fields:
+- hole_cards: array of 2 cards or empty (format: "Ah", "Kd", etc.)
+- board: array of 0-5 community cards or empty
+- pot: number (chip amount in pot)
+- your_stack: number (your total chips)
+- position: string (BTN/CO/MP/UTG/SB/BB/UNKNOWN)
+- action_on_you: boolean (true if your turn)
+- confidence: object with scores 0.0-1.0 for hole_cards, board, pot, stacks
 
-IMPORTANT: Respond with ONLY the JSON object, no explanations.
+Card format: As=Ace spades, Kh=King hearts, Qd=Queen diamonds, Jc=Jack clubs, Ts=Ten spades
 
-Example response format:
-{"hole_cards": ["Ah", "Kd"], "board": ["Qh", "Js", "10c"], "pot": 450, "your_stack": 2500, "position": "BTN", "action_on_you": true, "confidence": {"hole_cards": 0.95, "board": 0.90, "pot": 0.85, "stacks": 0.92}}
-
-If you cannot detect something, use null and low confidence. Use card format: As, Kh, Qd, Jc, Ts, etc.
-
-Respond now with JSON only:"""
+Output ONLY valid JSON, no text before or after:
+{"""
 
     def _parse_response(self, response: str) -> Dict[str, Any]:
         """
         Parse FastVLM JSON response.
 
-        Handles cases where LLM wraps JSON in markdown code blocks.
+        Handles cases where LLM wraps JSON in markdown code blocks or generates multiple JSONs.
         """
         try:
-            # Try to extract JSON from markdown code blocks
+            # Try to extract JSON from markdown code blocks first
             json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", response, re.DOTALL)
             if json_match:
                 json_str = json_match.group(1)
             else:
-                # Try to find JSON object directly
-                json_match = re.search(r"\{.*\}", response, re.DOTALL)
-                if json_match:
-                    json_str = json_match.group(0)
-                else:
+                # Find ALL JSON objects in the response
+                json_objects = list(re.finditer(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", response, re.DOTALL))
+
+                if not json_objects:
                     logger.warning("No JSON found in response")
+                    logger.error(f"Raw response: {response[:500]}")
                     return self._empty_game_state()
 
-            # Parse JSON
+                # Try to parse JSON objects from last to first (model's actual output comes last)
+                for match in reversed(json_objects):
+                    json_str = match.group(0)
+                    try:
+                        data = json.loads(json_str)
+                        # Successfully parsed - validate and return
+                        return self._validate_game_state(data)
+                    except json.JSONDecodeError:
+                        continue  # Try next JSON object
+
+                # None of the JSON objects parsed successfully
+                logger.error("Found JSON-like text but none parsed successfully")
+                logger.error(f"Raw response: {response[:500]}")
+                return self._empty_game_state()
+
+            # Parse the JSON we found
             data = json.loads(json_str)
 
             # Validate and normalize
