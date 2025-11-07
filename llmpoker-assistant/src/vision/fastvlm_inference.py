@@ -110,15 +110,14 @@ class FastVLMInference:
             ]
             image_tensor = image_tensor.to(self.device, dtype=torch.float16)
 
-            # Generate
+            # Generate (greedy decoding for deterministic output)
             with torch.inference_mode():
                 output_ids = self.model.generate(
                     input_ids,
                     images=image_tensor,
                     max_new_tokens=512,
                     use_cache=True,
-                    temperature=0.2,
-                    do_sample=False,
+                    do_sample=False,  # Greedy decoding, no sampling
                 )
 
             # Decode response
@@ -140,35 +139,25 @@ class FastVLMInference:
 
     def _build_extraction_prompt(self) -> str:
         """Build vision prompt for game state extraction."""
-        return """Analyze this poker game screenshot and extract the following information:
+        return """You are analyzing a poker game screenshot. Extract game information and respond with ONLY valid JSON.
 
-1. Your hole cards (2 cards, format: Ah, Kd, Qs, etc.)
-2. Community cards / Board (0-5 cards: flop, turn, river)
-3. Pot size (numeric value, extract from "POT:" or similar label)
-4. Your stack size (numeric value, your chip count)
-5. Your position (BTN, CO, MP, UTG, SB, BB)
-6. Is it your turn to act? (true/false)
+Extract:
+- hole_cards: Your 2 cards (e.g. ["Ah", "Kd"])
+- board: Community cards 0-5 (e.g. ["Qh", "Js", "10c"])
+- pot: Pot amount as number (e.g. 450)
+- your_stack: Your chips as number (e.g. 2500)
+- position: Your seat (BTN, CO, MP, UTG, SB, BB, or UNKNOWN)
+- action_on_you: true if it's your turn, false otherwise
+- confidence: Scores 0.0-1.0 for each element
 
-Respond in JSON format with confidence scores (0.0-1.0) for each element:
+IMPORTANT: Respond with ONLY the JSON object, no explanations.
 
-{
-    "hole_cards": ["<card1>", "<card2>"],
-    "board": ["<card1>", "<card2>", ...],
-    "pot": <number>,
-    "your_stack": <number>,
-    "position": "<position>",
-    "action_on_you": <true|false>,
-    "confidence": {
-        "hole_cards": <0.0-1.0>,
-        "board": <0.0-1.0>,
-        "pot": <0.0-1.0>,
-        "stacks": <0.0-1.0>
-    }
-}
+Example response format:
+{"hole_cards": ["Ah", "Kd"], "board": ["Qh", "Js", "10c"], "pot": 450, "your_stack": 2500, "position": "BTN", "action_on_you": true, "confidence": {"hole_cards": 0.95, "board": 0.90, "pot": 0.85, "stacks": 0.92}}
 
-If you cannot detect an element, set it to null and give it low confidence.
-Cards should use format: As (Ace of spades), Kh (King of hearts), Qd (Queen of diamonds), Jc (Jack of clubs), Ts (Ten of spades), etc.
-"""
+If you cannot detect something, use null and low confidence. Use card format: As, Kh, Qd, Jc, Ts, etc.
+
+Respond now with JSON only:"""
 
     def _parse_response(self, response: str) -> Dict[str, Any]:
         """
@@ -198,7 +187,8 @@ Cards should use format: As (Ace of spades), Kh (King of hearts), Qd (Queen of d
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON parse error: {e}")
-            logger.debug(f"Response was: {response}")
+            logger.error(f"Raw response that failed to parse: {response[:500]}")  # First 500 chars
+            logger.debug(f"Full response: {response}")
             return self._empty_game_state()
 
     def _validate_game_state(self, data: Dict[str, Any]) -> Dict[str, Any]:
