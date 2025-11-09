@@ -161,24 +161,140 @@ class LLMPokerAssistant:
 
         if region:
             logger.info(f"Loaded saved region: {region}")
-            # TODO: Add confirmation prompt
-            return region
 
-        # No saved region, prompt user
-        logger.info("No saved region found. Launching region selector...")
+            # Show confirmation dialog with preview
+            confirmed = await self._confirm_region(region)
+
+            if confirmed:
+                return region
+            elif confirmed is False:  # User wants to reselect
+                logger.info("User requested region reselection")
+                region = None  # Fall through to selector
+            else:  # User cancelled
+                logger.info("User cancelled startup")
+                return None
+
+        # No saved region or user wants to reselect
+        if region is None:
+            logger.info("Launching interactive region selector...")
+
+            try:
+                selector = RegionSelector()
+                region = selector.select_region()
+
+                # Save for next time
+                save_region(region)
+
+                return region
+
+            except Exception as e:
+                logger.error(f"Region selection error: {e}")
+                return None
+
+    async def _confirm_region(self, region: dict) -> Optional[bool]:
+        """
+        Show preview of saved region and ask user to confirm.
+
+        Returns:
+            True: Use this region
+            False: Reselect region
+            None: Cancel startup
+        """
+        import tkinter as tk
+        from tkinter import messagebox
+        from PIL import Image, ImageTk
+        import subprocess
+        import tempfile
+        import os
+
+        logger.info("Showing region confirmation dialog...")
 
         try:
-            selector = RegionSelector()
-            region = selector.select_region()
+            # Capture screenshot from saved region
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+                tmp_path = tmp.name
 
-            # Save for next time
-            save_region(region)
+            cmd = [
+                'screencapture', '-x',
+                '-R', f"{region['left']},{region['top']},{region['width']},{region['height']}",
+                tmp_path
+            ]
 
-            return region
+            subprocess.run(cmd, check=True, capture_output=True, timeout=5)
+            screenshot = Image.open(tmp_path)
+
+            # Create confirmation window
+            root = tk.Tk()
+            root.title("Confirm Monitoring Region")
+
+            # Window sizing
+            preview_width, preview_height = 800, 600
+            screenshot_copy = screenshot.copy()
+            screenshot_copy.thumbnail((preview_width, preview_height), Image.LANCZOS)
+
+            # Info label
+            info_text = f"Region: {region['width']}x{region['height']} at ({region['left']}, {region['top']})\n\nIs this the poker window you want to monitor?"
+            info = tk.Label(root, text=info_text, font=('Arial', 12), pady=15)
+            info.pack()
+
+            # Preview image
+            photo = ImageTk.PhotoImage(screenshot_copy)
+            img_label = tk.Label(root, image=photo)
+            img_label.image = photo  # Keep reference
+            img_label.pack(padx=10, pady=10)
+
+            # User choice
+            user_choice = [None]  # Use list to modify in nested function
+
+            def on_use():
+                user_choice[0] = True
+                root.quit()
+                root.destroy()
+
+            def on_reselect():
+                user_choice[0] = False
+                root.quit()
+                root.destroy()
+
+            def on_cancel():
+                user_choice[0] = None
+                root.quit()
+                root.destroy()
+
+            # Buttons
+            btn_frame = tk.Frame(root)
+            btn_frame.pack(pady=15)
+
+            tk.Button(btn_frame, text="✓ Use This Region", command=on_use,
+                     bg='green', fg='white', font=('Arial', 12, 'bold'),
+                     padx=20, pady=10).pack(side=tk.LEFT, padx=10)
+
+            tk.Button(btn_frame, text="↻ Select Different Region", command=on_reselect,
+                     bg='blue', fg='white', font=('Arial', 12, 'bold'),
+                     padx=20, pady=10).pack(side=tk.LEFT, padx=10)
+
+            tk.Button(btn_frame, text="✗ Cancel", command=on_cancel,
+                     bg='gray', fg='white', font=('Arial', 12, 'bold'),
+                     padx=20, pady=10).pack(side=tk.LEFT, padx=10)
+
+            # Center window
+            root.update_idletasks()
+            x = (root.winfo_screenwidth() // 2) - (root.winfo_width() // 2)
+            y = (root.winfo_screenheight() // 2) - (root.winfo_height() // 2)
+            root.geometry(f"+{x}+{y}")
+
+            root.mainloop()
+
+            # Cleanup
+            os.unlink(tmp_path)
+
+            logger.info(f"User choice: {user_choice[0]}")
+            return user_choice[0]
 
         except Exception as e:
-            logger.error(f"Region selection error: {e}")
-            return None
+            logger.error(f"Error showing confirmation dialog: {e}")
+            # Fallback to simple text prompt
+            return True  # Just use saved region if preview fails
 
     async def _start_api_server(self):
         """Start FastAPI server."""
