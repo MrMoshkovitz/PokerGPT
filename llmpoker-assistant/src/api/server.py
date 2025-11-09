@@ -47,6 +47,63 @@ async def health_check():
     }
 
 
+@app.post("/api/region/change")
+async def change_region():
+    """
+    Launch region selector to change monitored area.
+
+    Note: This runs synchronously and will block until user selects region.
+    """
+    try:
+        from src.capture.region_selector import RegionSelector, save_region
+        import asyncio
+
+        logger.info("User requested region change from dashboard")
+
+        # Run region selector (blocks until user completes)
+        def select_region_sync():
+            try:
+                selector = RegionSelector()
+                region = selector.select_region()
+                save_region(region)
+                return region
+            except Exception as e:
+                logger.error(f"Region selection failed: {e}")
+                return None
+
+        # Run in executor to avoid blocking event loop
+        loop = asyncio.get_event_loop()
+        region = await loop.run_in_executor(None, select_region_sync)
+
+        if region:
+            logger.info(f"Region changed to: {region}")
+
+            # Broadcast update to all connected clients
+            await broadcast_update({
+                "type": "region_changed",
+                "region": region
+            })
+
+            return {
+                "success": True,
+                "region": region,
+                "message": "Region updated successfully. Monitoring will restart."
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Region selection cancelled"
+            }
+
+    except Exception as e:
+        logger.error(f"Error in region change: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to change region. Check logs for details."
+        }
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """

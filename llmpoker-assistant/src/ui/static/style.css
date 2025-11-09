@@ -308,3 +308,37 @@ footer {
         font-size: 2rem;
     }
 }
+
+/* Buttons */
+.btn-secondary {
+    background-color: #444;
+    color: #e0e0e0;
+    border: 1px solid #666;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #555;
+    border-color: #00ff88;
+    transform: translateY(-1px);
+}
+
+.btn-secondary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#status {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}

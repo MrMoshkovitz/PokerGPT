@@ -169,8 +169,39 @@ function updateConnectionStatus(connected) {
     }
 }
 
+// Change region button handler
+async function changeRegion() {
+    const btn = document.getElementById('change-region-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Selecting...';
+
+    try {
+        const response = await fetch('/api/region/change', { method: 'POST' });
+        const result = await response.json();
+
+        if (result.success) {
+            alert(`Region changed!\nNew region: ${result.region.width}x${result.region.height} at (${result.region.left}, ${result.region.top})\n\nReloading dashboard...`);
+            window.location.reload();
+        } else {
+            alert('Region selection cancelled');
+        }
+    } catch (error) {
+        console.error('Error changing region:', error);
+        alert('Failed to change region. Check console for details.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '📹 Change Region';
+    }
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     console.log('LLMPoker Assistant initialized');
     connectWebSocket();
+
+    // Wire up change region button
+    const changeRegionBtn = document.getElementById('change-region-btn');
+    if (changeRegionBtn) {
+        changeRegionBtn.addEventListener('click', changeRegion);
+    }
 });
