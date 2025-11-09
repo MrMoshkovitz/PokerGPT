@@ -139,20 +139,20 @@ class FastVLMInference:
 
     def _build_extraction_prompt(self) -> str:
         """Build vision prompt for game state extraction."""
-        return """Extract poker game information from this screenshot.
+        return """Extract poker game information. Output this exact JSON structure:
+{
+  "hole_cards": ["card1", "card2"],
+  "board": ["card1", "card2", "card3"],
+  "pot": 1000,
+  "your_stack": 5000,
+  "position": "BTN",
+  "action_on_you": true,
+  "confidence": {"hole_cards": 0.95, "board": 0.90, "pot": 0.85, "stacks": 0.92}
+}
 
-Required fields:
-- hole_cards: array of 2 cards or empty (format: "Ah", "Kd", etc.)
-- board: array of 0-5 community cards or empty
-- pot: number (chip amount in pot)
-- your_stack: number (your total chips)
-- position: string (BTN/CO/MP/UTG/SB/BB/UNKNOWN)
-- action_on_you: boolean (true if your turn)
-- confidence: object with scores 0.0-1.0 for hole_cards, board, pot, stacks
+CRITICAL: confidence must be an OBJECT with 4 numbers, NOT true/false.
+Card format: As, Kh, Qd, Jc, Ts. Replace example values with actual detected values.
 
-Card format: As=Ace spades, Kh=King hearts, Qd=Queen diamonds, Jc=Jack clubs, Ts=Ten spades
-
-Output ONLY valid JSON, no text before or after:
 {"""
 
     def _parse_response(self, response: str) -> Dict[str, Any]:
@@ -209,6 +209,12 @@ Output ONLY valid JSON, no text before or after:
 
     def _validate_game_state(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and normalize extracted game state."""
+        # Get confidence and ensure it's a dict
+        confidence = data.get("confidence", {})
+        if not isinstance(confidence, dict):
+            logger.warning(f"Confidence is {type(confidence).__name__}, not dict. Resetting to empty dict.")
+            confidence = {}
+
         validated = {
             "hole_cards": data.get("hole_cards", []),
             "board": data.get("board", []),
@@ -216,7 +222,7 @@ Output ONLY valid JSON, no text before or after:
             "your_stack": float(data.get("your_stack", 0)) if data.get("your_stack") else 0,
             "position": data.get("position", "UNKNOWN"),
             "action_on_you": bool(data.get("action_on_you", False)),
-            "confidence": data.get("confidence", {}),
+            "confidence": confidence,
         }
 
         # Ensure confidence scores exist

@@ -75,6 +75,11 @@ class ConfidenceValidator:
         """Calculate average confidence across all elements."""
         confidences = state.get("confidence", {})
 
+        # Defensive: ensure confidences is a dict, not bool or other type
+        if not isinstance(confidences, dict):
+            logger.warning(f"Confidence is {type(confidences).__name__}, expected dict. Returning 0.0")
+            return 0.0
+
         if not confidences:
             return 0.0
 
