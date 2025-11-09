@@ -139,20 +139,12 @@ class FastVLMInference:
 
     def _build_extraction_prompt(self) -> str:
         """Build vision prompt for game state extraction."""
-        return """Extract poker game information. Output this exact JSON structure:
-{
-  "hole_cards": ["card1", "card2"],
-  "board": ["card1", "card2", "card3"],
-  "pot": 1000,
-  "your_stack": 5000,
-  "position": "BTN",
-  "action_on_you": true,
-  "confidence": {"hole_cards": 0.95, "board": 0.90, "pot": 0.85, "stacks": 0.92}
-}
+        return """Analyze poker table. Extract: hole cards, board cards, pot amount, stack, position, action status.
 
-CRITICAL: confidence must be an OBJECT with 4 numbers, NOT true/false.
-Card format: As, Kh, Qd, Jc, Ts. Replace example values with actual detected values.
+Response format (JSON only):
+{"hole_cards":["As","Kh"],"board":["Qh","Js","Tc"],"pot":450,"your_stack":2500,"position":"BTN","action_on_you":true,"confidence":{"hole_cards":0.9,"board":0.85,"pot":0.8,"stacks":0.9}}
 
+Your turn (JSON only):
 {"""
 
     def _parse_response(self, response: str) -> Dict[str, Any]:
